@@ -12,7 +12,6 @@ import {
   CardContent,
   CircularProgress,
   Paper,
-  TextField,
   Button,
   ButtonGroup,
 } from "@mui/material";
@@ -33,7 +32,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 

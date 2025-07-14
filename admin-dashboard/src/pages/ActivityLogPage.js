@@ -16,7 +16,6 @@ import {
   Pagination,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { debounce } from "lodash";
 
 // Helper to give each action type a color for better visuals
 const getActionChipColor = (action) => {
@@ -38,7 +37,6 @@ const getActionChipColor = (action) => {
 };
 
 const formatActionText = (log) => {
-  // ... (This helper function remains the same as before)
   const actionMap = {
     CREATED_USER: "created user",
     EDITED_USER: "edited user",
@@ -61,12 +59,11 @@ const ActivityLogPage = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // ** NEW: State for pagination **
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
-  const fetchLogs = async (pageNum, search) => {
+  // ✅ FIX: This callback is now stable and will not be recreated on every render.
+  const fetchLogs = useCallback(async (pageNum, search) => {
     setLoading(true);
     try {
       const data = await getActivityLogs(pageNum, search);
@@ -77,24 +74,36 @@ const ActivityLogPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array because the function doesn't depend on component state
 
-  // useMemo with debounce is a performance optimization to prevent API calls on every keystroke
-  const debouncedFetch = useCallback(debounce(fetchLogs, 500), []);
-
+  // ✅ FIX: This effect handles the debouncing of the search term.
   useEffect(() => {
-    // Reset to page 1 when search term changes
-    setPage(1);
-    debouncedFetch(1, searchTerm);
-  }, [searchTerm, debouncedFetch]);
+    const handler = setTimeout(() => {
+      // When the timer fires, we fetch logs for the current search term,
+      // always resetting to page 1 for a new search.
+      setPage(1); // Reset page on new search
+      fetchLogs(1, searchTerm);
+    }, 500); // 500ms delay
 
+    // This cleanup function cancels the timer if the user keeps typing
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, fetchLogs]); // Re-run this effect only when searchTerm or fetchLogs changes
+
+  // ✅ FIX: This effect handles pagination changes.
   useEffect(() => {
-    // Fetch data when page changes, but not on initial search term change
-    if (searchTerm === "") fetchLogs(page, searchTerm);
-  }, [page]);
+    // We only want this to run when the page number changes,
+    // and not when the search term is being debounced.
+    // The previous effect already handles fetching for new search terms.
+    fetchLogs(page, searchTerm);
+  }, [page, fetchLogs]); // Re-run only when the page number changes.
 
   const handlePageChange = (event, value) => {
-    setPage(value);
+    // Prevent fetching again if the search effect is about to run
+    if (value !== page) {
+      setPage(value);
+    }
   };
 
   return (
@@ -108,6 +117,7 @@ const ActivityLogPage = () => {
         variant="outlined"
         fullWidth
         margin="normal"
+        value={searchTerm} // Controlled component
         onChange={(e) => setSearchTerm(e.target.value)}
         InputProps={{
           startAdornment: (
@@ -130,7 +140,7 @@ const ActivityLogPage = () => {
                 <ListItem
                   secondaryAction={
                     <Chip
-                      label={log.action.replace("_", " ")}
+                      label={log.action.replace(/_/g, " ")}
                       color={getActionChipColor(log.action)}
                       size="small"
                     />
@@ -164,6 +174,7 @@ const ActivityLogPage = () => {
           page={page}
           onChange={handlePageChange}
           color="primary"
+          disabled={loading} // Disable pagination while loading
         />
       </Box>
     </Box>

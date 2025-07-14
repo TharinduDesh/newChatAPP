@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { getRecentActivityLogs } from "../services/activityLogService";
 import {
   Box,
-  Typography,
   List,
   ListItem,
   ListItemText,

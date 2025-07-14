@@ -1,10 +1,11 @@
 // src/pages/ConversationViewerPage.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react"; // Import useCallback
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   getConversationDetails,
   deleteMessageByAdmin,
 } from "../services/moderationService";
+import { API_BASE_URL } from "../config/apiConfig"; // ✅ Import the base URL
 import {
   Box,
   Typography,
@@ -39,9 +40,10 @@ const MessageBubble = ({ msg, isAdminMessage = false, onDelete }) => (
   >
     <ListItemAvatar>
       <Avatar
+        // ✅ FIX: Use the live backend URL for images
         src={
           msg.sender
-            ? `http://localhost:5000${msg.sender.profilePictureUrl}`
+            ? `${API_BASE_URL}${msg.sender.profilePictureUrl}`
             : "/default-admin.png"
         }
       >
@@ -82,7 +84,10 @@ const ConversationViewerPage = () => {
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
-  const fetchDetails = async () => {
+  // ✅ FIX: fetchDetails is now wrapped in useCallback and depends on conversationId.
+  // This makes the function stable unless the ID changes.
+  const fetchDetails = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await getConversationDetails(conversationId);
       setConversation(data.conversation);
@@ -92,17 +97,18 @@ const ConversationViewerPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [conversationId]);
 
+  // ✅ FIX: This useEffect hook now correctly depends on fetchDetails.
+  // It will re-run only when conversationId changes, which is the desired behavior.
   useEffect(() => {
     fetchDetails();
-  }, [conversationId]);
+  }, [fetchDetails]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handler for deleting a message **
   const handleDeleteMessage = async (messageId) => {
     if (
       window.confirm(
@@ -166,7 +172,6 @@ const ConversationViewerPage = () => {
         </Box>
         <List sx={{ flexGrow: 1, overflowY: "auto", p: 2 }}>
           {messages.map((msg) => (
-            // Pass the handler to each bubble
             <MessageBubble
               key={msg._id}
               msg={msg}

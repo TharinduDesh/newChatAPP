@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { getMostActiveUsers } from "../services/analyticsService";
 import {
   Box,
-  Typography,
   List,
   ListItem,
   ListItemText,

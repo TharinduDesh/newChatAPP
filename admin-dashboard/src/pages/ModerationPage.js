@@ -20,7 +20,7 @@ import {
 
 const ModerationPage = () => {
   const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const navigate = useNavigate();
 
