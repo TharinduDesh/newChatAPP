@@ -1,8 +1,9 @@
 // src/services/activityLogService.js
 import axios from "axios";
 import { getCurrentAdmin } from "./authService";
+import { API_BASE_URL } from "../config/apiConfig";
 
-const API_URL = "http://localhost:5000/api/logs";
+const API_URL = `${API_BASE_URL}/api/logs`;
 
 const getAuthHeader = () => {
   const admin = getCurrentAdmin();

@@ -1,9 +1,10 @@
 // src/services/moderationService.js
 import axios from "axios";
 import { getCurrentAdmin } from "./authService";
+import { API_BASE_URL } from "../config/apiConfig";
 
-const ADMIN_CONVO_URL = "http://localhost:5000/api/admin/conversations";
-const ADMIN_MSG_URL = "http://localhost:5000/api/admin/messages";
+const ADMIN_CONVO_URL = `${API_BASE_URL}/api/admin/conversations`;
+const ADMIN_MSG_URL = `${API_BASE_URL}/api/admin/messages`;
 
 const getAuthHeader = () => {
   const admin = getCurrentAdmin();

@@ -1,8 +1,9 @@
 // src/services/userService.js
 import axios from "axios";
 import { getCurrentAdmin } from "./authService";
+import { API_BASE_URL } from "../config/apiConfig";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = `${API_BASE_URL}/api`;
 
 // ... (getAuthToken and adminUserApi setup remains the same) ...
 const getAuthToken = () => {
