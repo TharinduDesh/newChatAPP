@@ -16,11 +16,13 @@ import {
   Chip,
   Avatar,
   AvatarGroup,
+  CircularProgress, // Import CircularProgress
 } from "@mui/material";
 
 const ModerationPage = () => {
   const [conversations, setConversations] = useState([]);
-  const [setLoading] = useState(true);
+  // ✅ FIX: Correctly destructure both `loading` and `setLoading` from useState
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const navigate = useNavigate();
 
@@ -36,7 +38,8 @@ const ModerationPage = () => {
       }
     };
     fetchConversations();
-  }, []);
+    // ✅ FIX: Add setLoading to the dependency array to remove the warning
+  }, [setLoading]);
 
   const filteredConversations = useMemo(
     () =>
@@ -71,48 +74,54 @@ const ModerationPage = () => {
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
       />
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Conversation</TableCell>
-              <TableCell>Participants</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Last Activity</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredConversations.map((convo) => (
-              <TableRow
-                key={convo._id}
-                hover
-                sx={{ cursor: "pointer" }}
-                onClick={() => navigate(`/moderation/${convo._id}`)}
-              >
-                <TableCell>{getConversationTitle(convo)}</TableCell>
-                <TableCell>
-                  <AvatarGroup max={4}>
-                    {convo.participants.map((p) => (
-                      <Avatar key={p._id} alt={p.fullName}>
-                        {p.fullName.charAt(0)}
-                      </Avatar>
-                    ))}
-                  </AvatarGroup>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={convo.isGroupChat ? "Group" : "One-on-One"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {new Date(convo.updatedAt).toLocaleString()}
-                </TableCell>
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Conversation</TableCell>
+                <TableCell>Participants</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Last Activity</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filteredConversations.map((convo) => (
+                <TableRow
+                  key={convo._id}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => navigate(`/moderation/${convo._id}`)}
+                >
+                  <TableCell>{getConversationTitle(convo)}</TableCell>
+                  <TableCell>
+                    <AvatarGroup max={4}>
+                      {convo.participants.map((p) => (
+                        <Avatar key={p._id} alt={p.fullName}>
+                          {p.fullName.charAt(0)}
+                        </Avatar>
+                      ))}
+                    </AvatarGroup>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={convo.isGroupChat ? "Group" : "One-on-One"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {new Date(convo.updatedAt).toLocaleString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 };

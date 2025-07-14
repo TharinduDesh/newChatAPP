@@ -97,7 +97,7 @@ const ActivityLogPage = () => {
     // and not when the search term is being debounced.
     // The previous effect already handles fetching for new search terms.
     fetchLogs(page, searchTerm);
-  }, [page, fetchLogs]); // Re-run only when the page number changes.
+  }, [page, searchTerm, fetchLogs]); // Re-run only when the page number changes.
 
   const handlePageChange = (event, value) => {
     // Prevent fetching again if the search effect is about to run
