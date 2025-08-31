@@ -1,74 +1,123 @@
 // src/pages/LoginPage.js
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { login } from "../services/authService";
+import React, { useState, useEffect } from "react";
 import {
+  Container,
   TextField,
   Button,
-  Container,
   Typography,
   Box,
-  Divider,
+  Alert,
+  CircularProgress,
+  Paper,
 } from "@mui/material";
-import { loginWithBiometrics } from "../services/webauthnService";
-import Fingerprint from "@mui/icons-material/Fingerprint";
+import FingerprintIcon from "@mui/icons-material/Fingerprint";
+import { Link, useNavigate } from "react-router-dom";
+import { login, getCurrentAdmin } from "../services/authService";
+import {
+  getAuthenticationOptions,
+  verifyAuthentication,
+} from "../services/webauthnService";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // If user is already logged in, redirect to dashboard
+    if (getCurrentAdmin()) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    if (!email || !password) {
+      setError("Please provide both email and password.");
+      setLoading(false);
+      return;
+    }
+
     try {
       await login(email, password);
-      navigate("/dashboard"); // Redirect to dashboard on successful login
-    } catch (error) {
-      console.error("Login failed", error);
-      // You can add error handling here (e.g., show a snackbar)
+      navigate("/dashboard");
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleBiometricLogin = async () => {
-    if (!email) {
-      alert("Please enter your Email Address to log in with biometrics.");
-      return;
-    }
+    setError("");
+    setBiometricLoading(true);
     try {
-      // We now pass the email as the username
-      const { verified } = await loginWithBiometrics(email);
-      if (verified) {
-        // After successful verification, we need a way to get the auth token.
-        // For simplicity, we'll call the regular login endpoint again,
-        // but in a real app, you might have a dedicated endpoint for this.
-        await login(email, null, true); // Pass a flag indicating biometric login
-        alert("Biometric login successful!");
+      // 1. Get options from server
+      const options = await getAuthenticationOptions();
+
+      // 2. Prompt user for biometric authentication
+      const cred = await startAuthentication(options);
+
+      // --- START: MODIFIED LOGIC ---
+      // 3. Verify the credential with the server
+      const data = await verifyAuthentication(cred);
+
+      // 4. On successful verification, the backend now sends a token.
+      // We must handle it here to complete the login.
+      if (data.token && data.admin) {
+        // Manually log the user in by saving the token and admin data
+        localStorage.setItem("admin", JSON.stringify(data.admin));
+        localStorage.setItem("token", data.token);
+
+        // Navigate to the dashboard
         navigate("/dashboard");
       } else {
-        alert("Biometric login failed. Please try again.");
+        // This 'else' block handles cases where verification fails on the backend
+        setError(data.message || "Biometric login failed. Please try again.");
       }
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "An error occurred during biometric login."
-      );
+      // --- END: MODIFIED LOGIC ---
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        "Biometric login failed or was cancelled. Please try again.";
+      console.error("Biometric Login Error:", err);
+      setError(errorMessage);
+    } finally {
+      setBiometricLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="xs">
-      <Box
+    <Container component="main" maxWidth="xs">
+      <Paper
+        elevation={3}
         sx={{
           marginTop: 8,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          padding: 4,
+          borderRadius: 2,
         }}
       >
-        <Typography component="h1" variant="h5">
-          Admin Login
+        <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+          Admin Sign In
         </Typography>
-        <Box component="form" onSubmit={handleLogin} sx={{ mt: 3 }}>
+        {error && (
+          <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <Box component="form" onSubmit={handleLogin} noValidate sx={{ mt: 1 }}>
           <TextField
             margin="normal"
             required
@@ -97,35 +146,31 @@ const LoginPage = () => {
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
+            sx={{ mt: 3, mb: 1, py: 1.5 }}
           >
-            Sign In
+            {loading ? <CircularProgress size={24} /> : "Sign In"}
           </Button>
-        </Box>
-
-        <Divider sx={{ width: "100%", my: 2 }}>OR</Divider>
-
-        <Box sx={{ width: "100%", textAlign: "center" }}>
-          <Typography variant="body1" sx={{ mb: 1 }}>
-            Use Biometrics
-          </Typography>
-          {/* The email field above will be used for biometric login */}
           <Button
-            onClick={handleBiometricLogin}
+            type="button"
             fullWidth
             variant="outlined"
-            startIcon={<Fingerprint />}
+            onClick={handleBiometricLogin}
+            disabled={biometricLoading}
+            startIcon={<FingerprintIcon />}
+            sx={{ mb: 2, py: 1.5 }}
           >
-            Sign In with Biometrics
+            {biometricLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              "Sign In with Biometrics"
+            )}
           </Button>
-        </Box>
-
-        <Box sx={{ mt: 3, textAlign: "center" }}>
-          <Link to="/signup" style={{ textDecoration: "none" }}>
-            {"Don't have an admin account? Sign Up"}
+          <Link to="/signup" variant="body2">
+            {"Don't have an account? Sign Up"}
           </Link>
         </Box>
-      </Box>
+      </Paper>
     </Container>
   );
 };

@@ -19,6 +19,24 @@ export const login = async (email, password) => {
   return response.data;
 };
 
+// ✅ NEW: Function to handle biometric login
+export const biometricLogin = async (email) => {
+  console.log("FRONTEND: biometricLogin called with email:", email);
+  try {
+    const response = await axios.post(API_URL + "biometric-login", { email });
+    console.log("FRONTEND: Biometric login response:", response.data);
+
+    if (response.data.token) {
+      localStorage.setItem("admin", JSON.stringify(response.data));
+      console.log("FRONTEND: Token stored in localStorage");
+    }
+    return response.data;
+  } catch (error) {
+    console.error("FRONTEND: Biometric login error:", error);
+    throw error;
+  }
+};
+
 // Function to handle admin logout
 export const logout = () => {
   localStorage.removeItem("admin");
